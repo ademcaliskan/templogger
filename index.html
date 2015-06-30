@@ -10,28 +10,32 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
     <!-- Javascript Highcharts import the file directly from your server -->
-    <script src="http://code.highcharts.com/highcharts.js"></script> 
+    <script src="http://code.highcharts.com/highcharts.js"></script>
 </head>
 <body>
-    <!--  'll have the div where the graph. I tell it that the width of the 
+    <!--  'll have the div where the graph. I tell it that the width of the
          screen is 100% and the height is 400px -->
     <div id="chart" style="width:100%; height:400px;"></div>
+    <div id="chartMem" style="width:50%; height:400px;"></div>
+    <div id="chartDisk" style="width:50%; height:400px;"></div>
     <!-- Javascript Begins -->
     <script>
-    // I create a WebSocket . Put the IP of your Raspberry Pi! 
-    var socket = io.connect('http://192.168.178.29:8000');
+    // I create a WebSocket . Put the IP of your Raspberry Pi!
+    var socket = io.connect('http://192.168.178.22:8000');
     // I create a new object 'Chart'
     var chart;
+    var chartSize = 20;
+
     chart = new Highcharts.Chart({
         chart: {
-            renderTo: 'chart', 
+            renderTo: 'chart',
             defaultSeriesType: 'spline',
             events: {
                 load: function() {
                     // Each time you receive a value from the socket, I put it on the graph
-                    socket.on('temperatureUpdate', function (time, data) {
-                        var series = chart.series[0];
-                        series.addPoint([time, data]);
+                    socket.on('data-feed', function (time, data) {
+                        chart.series[0].addPoint([time, data.cpuTemp], false, (chart.series[0].data.length > chartSize) ? true :false);
+                        chart.series[1].addPoint([time, data.cpuLoad], true, (chart.series[1].data.length > chartSize) ? true :false);
                     });
                 }
             }
@@ -40,7 +44,7 @@
             selected : 100
         },
         title: {
-            text: 'CPU Temperature Raspberry Pi'
+            text: 'CPU Temperature / Load Raspberry Pi'
         },
         xAxis: {
             type: 'datetime',
@@ -56,7 +60,19 @@
             }
         },
         series: [{
+            type: 'areaspline',
             name: 'Temperature',
+            data: [],
+            lineColor: '#FF0000',
+            fillColor: {
+                    linearGradient: [0, 0, 0, 300],
+                    stops: [
+                        [0, '#FF0000'],
+                        [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+                    ]
+                }
+        },{
+            name: 'CPU Load',
             data: []
         }]
     });
